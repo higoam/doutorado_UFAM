@@ -1,0 +1,163 @@
+RESUME
+
+Title: Semiformal Verification of Embedded Software in Medical Devices Considering Stringent Hardware Constraints
+
+#1 - Introduction
+
+
+# 2 - Related Work
+
+
+# 3 - A New Semiformal Verification Approach
+
+Esta seção descreve nossa abordagem de verificação semiformal proposta para verificar a ESW. 
+A idéia por trás dessa abordagem é considerar não apenas níveis mais altos de abstração, mas também a interface HW/SW em metodologias de design baseadas em plataforma [20]. 
+Conforme mostrado na Figura 1, nossa abordagem de verificação semiformal proposta começa projetando o teste de unidade para cada estágio de computação das funcionalidades do sistema que são descritas na lista de pendências do produto [2]. 
+A lista de pendências do produto pode ser vista como uma fila de requisitos em evolução e priorizando o desenvolvimento de maneira iterativa e incremental [16]. 
+Portanto, de acordo com o valor comercial (prioridade) das funcionalidades do sistema definidas no backlog do produto, 
+devemos primeiro escrever o teste de unidade para uma determinada funcionalidade e depois devemos compilar com êxito o teste de unidade antes de realmente escrever o código da funcionalidade.
+
+Existem alguns benefícios se projetarmos e compilarmos o teste de unidade antes de escrever o código [7]. 
+Esses benefícios se enquadram nas seguintes categorias:
+	(i) refletem sobre o design antes de codificar as funções do sistema, 
+	(ii) testam a correção das funcionalidades enfatizando e cobrindo cenários difíceis e 
+	(iii) alcançam melhores resultados em termos de complexidade ciclomática v (φ), a fim de facilitar as atividades de verificação. 
+
+Níveis de baixa complexidade ciclomática v (φ) (em que φ significa o CFG do programa) facilitam o teste de caixa branca devido ao fato de que diminuem substancialmente o número de caminhos 
+(isto é, o fluxo de controle) que devem ser testados para proteger razoavelmente contra erros [7].
+
+Após projetar os testes e desenvolver o ESW, o tradutor de modelo converte o modelo ESW e microprocessador em fórmulas BDDs (Diagrama de Decisão Binária) ou CNF (Forma Normal Conjuntiva) 
+com o objetivo de permitir ao engenheiro verificar se certas propriedades do sistema se mantêm no modelo usando técnicas de verificação de modelo baseadas em BDD ou SAT. 
+As propriedades do sistema (por exemplo, liberdade de impasse, acessibilidade, segurança e vitalidade) podem ser expressas como fórmulas de estado usando a CTL (Computation Tree Logic), 
+a CTL em tempo real, a lógica temporal temporal (LTL) e a linguagem de especificação de propriedades (PSL) [4]
+
+Além disso, se o modelo não atender à especificação, um contra-exemplo será gerado automaticamente. 
+Este contra-exemplo está incluído no conjunto de testes e pode ser usado para testar o ESW durante a verificação dinâmica. 
+O processo para converter o contra-exemplo em caso de teste ainda é realizado manualmente, conforme descrito na Seção 4. 
+Outro aspecto importante é que a cobertura da diretiva de verificação do PSL pode ser incluída para medir a ocorrência de comportamentos esperados durante a verificação dinâmica. 
+No entanto, ainda não integramos ferramentas em nossa abordagem proposta que fornecem informações sobre a cobertura de propriedades.
+
+Em um sistema incorporado complexo, haverá vários módulos de software que dependem do hardware e outros que não. 
+Normalmente, não podemos determinar se um problema está dentro de um módulo ou em algum outro local do sistema quando integramos todos os componentes à plataforma incorporada. 
+Isso geralmente acontece em sistemas embarcados devido a restrições de tempo. Especialmente em sistemas embarcados de tempo real (por exemplo, oxímetro de pulso), onde os prazos não devem ser perdidos, 
+é extremamente importante raciocinar quantitativamente sobre as propriedades temporais para garantir a correção do projeto.
+
+Portanto, quando tentamos executar o ESW recém-desenvolvido em um modelo de microprocessador, estamos lidando com muitas incógnitas simultaneamente. 
+Um problema no simulador, no modelo da CPU, no acesso ao endereço de registro ou na geração de interrupções pode mascarar como um erro de software, levando a uma perda de tempo significativa e frustrante. 
+Especialmente, quando lançamos nosso ESW na plataforma, o hardware que funcionou perfeitamente em um minuto pode ser um buggy no próximo e os erros intermitentes de hardware são difíceis de lidar. 
+Consequentemente, ainda precisamos de uma abordagem eficiente para isolar completamente os módulos, a fim de evitar a verificação de hardware e software simultaneamente. 
+Como resultado, propomos três abordagens para resolver esses problemas. 
+Na primeira abordagem, pretendemos verificar estaticamente e dinamicamente o ESW "puro", enquanto a segunda abordagem se concentra no código dependente de hardware. 
+A terceira abordagem considera a integração de componentes de hardware e software, para que possamos encontrar violações de propriedades relacionadas à integração do sistema durante todo o ciclo de vida do desenvolvimento do sistema.
+
+
+# 3.1 1st Approach: Verification using Platform-Independent Software
+
+Para evitar a verificação simultânea de hardware e software, precisamos implementar pequenas alterações no ESW para manter a capacidade de 
+	(i) usar verificadores de modelo, 
+	(ii) executar testes de unidade automatizados e 
+	(iii) executar o ESW na plataforma de destino . 
+Além disso, essas modificações são necessárias porque os verificadores de modelo (por exemplo, CBMC [5]
+e SATABS [6]) e a estrutura de teste de unidade (por exemplo, EmbUnit 1) que aceita ANSI C não reconhecem software dependente de plataforma e, portanto, precisamos abstrair essas informações de nossos modelos C. 
+A segunda abordagem descrita na próxima subseção fornece técnicas para verificar formalmente o software dependente da plataforma usando microprocessos.
+modelo Verilog de Sor com o verificador de modelos CBMC [5].
+
+Para evitar a necessidade de uso significativo da construção #ifdef, 
+incluímos o software dependente da plataforma em arquivos de driver de nível inferior com o objetivo de isolar o software independente e dependente da plataforma. 
+Isso permite ao engenheiro verificar com eficiência o software "puro" e migrá-lo facilmente para cada plataforma de destino na qual pretendemos reutilizar o ESW. 
+Essa abordagem também ajuda a entender claramente a interface entre código "puro" e código específico de hardware. 
+Para os módulos de software que são específicos de hardware, também nos separamos em duas classes diferentes: módulos que controlam o hardware e módulos controlados pelo ambiente. 
+Para o último, a estratégia é usar stubs para simular a interação entre o ambiente e o sistema. 
+Por exemplo, poderíamos coletar dados reais do hardware do sensor do oxímetro de pulso em tempo real e depois colocá-los em um arquivo que pode ser usado pelo ESW durante a fase de simulação (ou seja, verificação dinâmica).
+
+Como resultado, podemos adaptar nossa função para ler os dados do arquivo armazenado no PC, em vez de ler essas informações diretamente do sensor. 
+Esse tipo de estratégia é aplicável a uma ampla gama de dispositivos médicos, porque a maioria deles possui um estágio de aquisição de dados e, em seguida, a aplicação de um algoritmo, seguido pela saída de um resultado. Além disso, a coleta de dados real geralmente é viável, porque o fabricante do sensor geralmente fornece uma placa de avaliação que o conecta ao PC e permite ao engenheiro testar o hardware do sensor independentemente da plataforma de destino. O principal benefício dessa abordagem é que ela permite ao engenheiro de sistema incorporado isolar problemas que possam estar relacionados ao modelo de microprocessador. 
+Assim, ganhando confiança no ESW por meio de verificação estática e dinâmica, podemos verificar o ESW sabendo que as únicas áreas restantes são a interação direta com o hardware.
+
+# 3.2 2nd Approach: Verification using Platform-Dependent Software
+
+Para verificar o software dependente da plataforma, adotamos técnicas de verificação baseadas em asserções para reduzir substancialmente os problemas relacionados à interação HW/SW. 
+Portanto, a macro de afirmação de C pode ser usada para declarar uma suposição (por exemplo, afirmar (próximo <tamanho do buffer)) para que a execução seja interrompida se a propriedade declarada não for válida. 
+Essa parada permite que o engenheiro examine a pilha de chamadas (durante a verificação dinâmica) ou o contra-exemplo (durante a verificação estática) e verifique o que deu errado. 
+O código C a seguir mostra um exemplo de software dependente de hardware do timer do oxímetro de pulso:
+
+	oc8051tc.th 0=THIGH ;
+	oc8051tc.tl 0=TLOW;
+	for(cycle=0;cycle < n; cycle++)
+	  next timeframe ( ) ;
+	assert(oc8051tc.th0==X) ;
+	assert(oc8051tc.tl0==Y) ;
+
+Os registradores th0 e tl0 são carregados com os valores THIGH e TLOW nas linhas 1 e 2, respectivamente. 
+Esses valores definem o tempo para gerar uma interrupção no sistema que é usada para acionar algum evento. 
+A função next timeframe() na linha 4 altera o estado do registro no modelo Verilog n vezes de acordo com o loop definido na linha 3. 
+Depois disso, o conteúdo dos registros é verificado nas linhas 5 e 6 usando macros de declaração. 
+Consequentemente, a macro assert pode ser usada na presença de um modelo de microprocessador para verificar a interação dos componentes HW/SW. 
+Para essa finalidade, o verificador de modelo CBMC permite que o engenheiro raciocine sobre um programa C/C++ junto com um modelo Verilog do hardware. 
+Dado isso, esse verificador de modelo fornece meios para 
+	(i) alterar o estado do modelo Verilog do programa C, 
+	(ii) sincronizar entradas entre os módulos de software e hardware, 
+	(iii) restringir a escolha das entradas do módulo Verilog na C e 
+	(iv) mapear variáveis ​​dentro da hierarquia do módulo para monitorar os valores dos registradores durante a verificação estática.
+
+O uso da macro assert é apropriado durante o desenvolvimento do sistema, 
+mas o código não deve parar quando estiver em uso pelo cliente. 
+Para resolver esse problema, usamos uma função de wrapper que permite usar a macro assertiva simples ou gravar silenciosamente uma mensagem de diagnóstico em um buffer, 
+dependendo de um sinalizador que indique o ambiente de desenvolvimento ou campo. 
+Cada mensagem gravada no buffer relata o arquivo de origem, o número da linha, a gravidade e o texto do diagnóstico. 
+Embora o uso da verificação baseada em asserções seja bastante eficiente, ele tem limitações para verificar propriedades mais complexas no ESW.
+Nesse contexto, o verificador de modelo CBMC é capaz apenas de verificar propriedades mais complexas que surgem da interação não trivial dos componentes HW/SW se implementarmos a especificação completa da propriedade em ANSI-C. 
+No entanto, a combinação de CTL e PSL em tempo real é mais eficaz pelo fato de permitir a verificação de propriedades funcionais e temporais complexas e de criar modelos de cobertura funcional baseados em propriedades formalmente especificadas. 
+Como trabalho futuro, pretendemos definir um subconjunto de CTL e PSL em tempo real para verificar o software dependente da plataforma no CBMC, a fim de melhorar a cobertura do sistema.
+																																																																																																																									
+																																																																																																																									
+# 3.3 3rd Approach: Domain-Level Verification (Verificação de nível de domínio)																																																																																																																				
+As linguagens de especificação, como FLTL (Finite Linear Temporal Logic) e CTL em tempo real, parecem ser um veículo adequado para especificar propriedades que envolvem limites de tempo explícitos. 
+No entanto, mesmo se usarmos o verificador de modelo NuSMV2, ainda é prematuro considerar a verificação de propriedades temporais no ESW, porque considera que cada transição leva um tempo unitário para execução. 
+Para sistemas embarcados, precisamos de mecanismos para atribuir valores a cada transição, para que esses valores sejam os tempos de execução estimados de pior caso (WCET) da respectiva transição no processador selecionado. 
+Diante disso, precisamos claramente de uma estratégia de verificação no nível do domínio para isolar os problemas observados no nível do sistema, como atrasos no tempo. A Figura 2 mostra nosso processo de verificação em nível de domínio proposto.
+Esse processo permite que os membros da equipe integrem componentes ao sistema, gerenciem a linha de desenvolvimento do produto e, portanto, identifiquem problemas no nível do sistema. Esse processo funciona da seguinte maneira: 
+	(i) primeiro, devemos verificar o código no repositório para um espaço de trabalho local. 
+		Isto nos permite implementar as novas funcionalidades do sistema, corrigir bugs e melhorar o código do sistema. Além disso, também podemos gerar novas compilações de produtos no repositório local. 
+		O repositório do Subversion (SVN) tem o objetivo de controlar as versões de código do sistema. 2 
+	(ii) Antes de disponibilizar a ESW no repositório para outros engenheiros, primeiro especificamos e verificamos formalmente as propriedades do sistema usando o modelo Verilog do microprocessador (verificação estática) e, 
+		em seguida, executamos todos os casos de teste de maneira automatizada.
+		Se os verificadores de modelos encontrarem erros ou violações de propriedades durante o processo de verificação, os contra-exemplos serão convertidos em casos de teste e incluídos na ferramenta EmbUnit. 
+		Essa ferramenta tem como objetivo executar todos os tipos de testes de unidade, funcionais e de integração.
+	(iii) Depois de disponibilizar o ESW no repositório SVN, a ferramenta CruiseControl 3 procura por modificações de código no repositório. 
+		Se a data/hora do arquivo for alterada, a ferramenta CruiseControl iniciará o processo de compilação de maneira automatizada. Se houver um erro de compilação, 
+		a ferramenta CruiseControl envia um email para a pessoa responsável por quebrar o código. 
+		Caso contrário, ele gera o arquivo .hex que será carregado na memória flash da plataforma incorporada e, em seguida, executa outras ferramentas (por exemplo, CC0 4, CBMC, Satabs, NuSMV2 e EmbUnit) 
+		para capturar as métricas, verificar e teste o código. Dados sobre o tamanho do código-fonte, número de funções e complexidade ciclomática são obtidos usando a ferramenta CC0, que analisa arquivos C/C ++.
+
+
+# 3.4 Comparison of Proposed Approaches
+
+Conforme mencionado na subseção anterior, precisamos de uma estratégia de verificação no nível do domínio para isolar os problemas observados no nível do sistema, como atrasos no tempo. 
+Diante disso, nossa primeira abordagem se concentra no software independente da plataforma e permite determinar rapidamente a violação de propriedade no controle e fluxo de dados da ESW. 
+Essa abordagem abstrai essencialmente os detalhes da plataforma sobre o custo de se tornar difícil encontrar atrasos no tempo quando todos os componentes do sistema são integrados à plataforma incorporada. 
+A segunda abordagem visa verificar formalmente a interação HW / SW e encontrar problemas relacionados ao ESW que controlam os componentes de hardware. 
+Por outro lado, essa abordagem não considera níveis mais altos de ESW como a primeira abordagem. 
+A terceira abordagem visa integrar os componentes HW / SW e executar a verificação estática e dinâmica para encontrar violações de propriedades que possam surgir devido à integração dos componentes do sistema.
+
+
+
+# 4 Medical Device Case Study
+
+
+# 5 Experimental Results
+
+Esta seção descreve os resultados experimentais ao aplicar a abordagem proposta na verificação do equipamento do oxímetro de pulso. 
+Essas experiências foram conduzidas em uma CPU Intel Core 2 Duo, 2 Ghz, 3 GB de RAM com sistema operacional Linux. 
+A versão final do oxímetro de pulso ESW possui aproximadamente 3500 linhas de código ANSI-C e 80 funções. 
+Para cumprir o prazo do aplicativo, existem 100 linhas de código de montagem responsáveis pela gravação de mensagens de texto no hardware do LCD. 
+Aplicando a abordagem proposta, encontramos 14 violações das condições de verificação (VCs) usando SATABS, 6 violações dos VCs usando CBMC e 3 violações de propriedades usando NuSMV2. 
+As condições de verificação estão relacionadas aos limites do array e à segurança do ponteiro e são geradas automaticamente pelos verificadores de modelo CBMC e SATABS.
+
+
+# 6 Conclusions and Future Work
+
+
+
+
+																																																																																																																									
